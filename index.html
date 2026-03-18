@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zpay ROI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Mulish:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:         #F4F2EE;
+  --white:      #FFFFFF;
+  --ink:        #1B1B26;
+  --ink2:       #3C3C50;
+  --subtle:     #737389;
+  --divider:    #E3E1DB;
+  --teal:       #0E7C6B;
+  --teal-bg:    #EAF5F2;
+  --teal-border:#B3DDD7;
+  --red:        #B91C1C;
+  --red-bg:     #FEF2F2;
+  --red-border: #FECACA;
+  --amber:      #92600A;
+  --amber-bg:   #FEFCE8;
+  --amber-border:#FDE68A;
+  --navy:       #1E3A5F;
+  --sh1: 0 1px 3px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+  --sh2: 0 4px 20px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  --sh3: 0 12px 40px rgba(0,0,0,.11), 0 4px 12px rgba(0,0,0,.05);
+}
+
+body {
+  font-family: 'Mulish', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 52px 20px 100px;
+}
+
+.page { max-width: 1000px; margin: 0 auto; }
+
+.zpay-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 800; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 14px;
+}
+.zpay-eyebrow::before { content:''; display:block; width:24px; height:2px; background:var(--teal); border-radius:2px; }
+
+h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(40px, 5.5vw, 58px); font-weight: 700;
+  line-height: 1.0; letter-spacing: -.02em; color: var(--ink); margin-bottom: 10px;
+}
+h1 em { font-style: normal; color: var(--teal); }
+.hd-desc { color: var(--subtle); font-size: 14px; line-height: 1.65; max-width: 420px; margin-bottom: 36px; }
+
+/* Prospect bar */
+.prospect-bar {
+  background: var(--white); border: 1.5px solid var(--divider);
+  border-radius: 14px; padding: 16px 22px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; box-shadow: var(--sh1);
+}
+.pb-lbl { font-size: 10px; font-weight: 800; letter-spacing:.12em; text-transform:uppercase; color:var(--subtle); margin-bottom:2px; }
+.prospect-bar input[type="text"] {
+  background: none; border: none; outline: none;
+  font-family: 'Mulish', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink); width: 100%;
+}
+.prospect-bar input::placeholder { color: #C4C2BC; font-weight: 400; }
+
+/* Input grid */
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+@media(max-width:640px) { .input-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--white); border: 1.5px solid var(--divider);
+  border-radius: 18px; padding: 26px 28px; box-shadow: var(--sh1);
+}
+.card-hd {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--divider);
+}
+.card-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--teal); color: #fff;
+  font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.card-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 700; color: var(--ink); }
+
+.field { margin-bottom: 15px; }
+.field:last-child { margin-bottom: 0; }
+.field > label { display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--subtle); margin-bottom:6px; }
+
+.fw {
+  display: flex; align-items: center;
+  background: var(--bg); border: 1.5px solid var(--divider);
+  border-radius: 10px; overflow: hidden;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.fw:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,124,107,.1); background: var(--white); }
+.fw.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(185,28,28,.1); }
+
+.fa { padding: 0 12px; font-size: 13px; font-weight: 700; color: var(--subtle); user-select: none; flex-shrink: 0; }
+
+.fw input[type="number"] {
+  flex: 1; background: none; border: none; outline: none;
+  padding: 12px 4px 12px 0;
+  font-family: 'Mulish', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink);
+  -moz-appearance: textfield;
+}
+.fw input::-webkit-inner-spin-button, .fw input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* Error message */
+.err-msg {
+  display: none;
+  background: var(--red-bg); border: 1.5px solid var(--red-border);
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; font-weight: 600; color: var(--red);
+  margin-bottom: 16px;
+}
+.err-msg.show { display: block; }
+
+/* Toggle */
+.toggle { display:flex; background:var(--bg); border:1.5px solid var(--divider); border-radius:10px; padding:3px; }
+.tgl {
+  flex:1; padding:9px; border:none; border-radius:7px;
+  background:transparent; color:var(--subtle);
+  font-family:'Mulish',sans-serif; font-weight:700; font-size:12px;
+  cursor:pointer; transition:all .16s; letter-spacing:.03em;
+}
+.tgl.on { background:var(--ink); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.16); }
+
+.cta-btn {
+  width:100%; padding:14px 20px; background:var(--teal); color:#fff;
+  border:none; border-radius:10px;
+  font-family:'Mulish',sans-serif; font-weight:800; font-size:14px; letter-spacing:.03em;
+  cursor:pointer; margin-top:4px;
+  transition:background .18s, transform .14s, box-shadow .18s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.cta-btn:hover { background:#0a6357; transform:translateY(-1px); box-shadow:0 6px 20px rgba(14,124,107,.28); }
+.cta-btn:active { transform:none; }
+
+/* Results */
+.results { display:none; }
+.results.show { display:block; animation:riseIn .36s cubic-bezier(.22,.68,0,1.1); }
+@keyframes riseIn { from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);} }
+
+.sec-rule { display:flex; align-items:center; gap:12px; margin:30px 0 14px; }
+.sec-rule-line { flex:1; height:1px; background:var(--divider); }
+.sec-rule-text { font-size:10px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--subtle); white-space:nowrap; }
+
+/* Banner */
+.banner {
+  background: var(--navy); border-radius: 18px;
+  box-shadow: var(--sh3); position: relative; overflow: hidden;
+}
+.banner::after {
+  content:''; position:absolute; top:-100px; right:-80px;
+  width:360px; height:360px;
+  background:radial-gradient(circle, rgba(14,124,107,.15), transparent 65%);
+  pointer-events:none;
+}
+
+/* Top section — net total */
+.banner-hero {
+  padding: 36px 40px 32px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.banner-eyebrow {
+  font-size: 10px; font-weight: 800;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: rgba(255,255,255,.3); margin-bottom: 10px;
+}
+.banner-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(44px,6vw,62px); font-weight: 700;
+  line-height: 1; letter-spacing: -.01em;
+}
+.banner-val.pos { color: #6EE7B7; }
+.banner-val.neg { color: #FCA5A5; }
+.banner-sub {
+  font-size: 13px; color: rgba(255,255,255,.4);
+  margin-top: 8px; line-height: 1.55; font-weight: 400;
+}
+.banner-hero-right { text-align: right; padding-top: 4px; }
+.banner-stores-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px; font-weight: 700; color: #fff; line-height: 1;
+}
+.banner-stores-lbl {
+  font-size: 10px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(255,255,255,.28); margin-top: 5px;
+}
+
+/* Stats row */
+.banner-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+@media(max-width:560px){ .banner-stats{ grid-template-columns:1fr; } }
+
+.bs {
+  padding: 26px 32px;
+  border-right: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bs:last-child { border-right: none; }
+
+.bs-lbl {
+  font-size: 10px; font-weight: 800; letter-spacing: .15em;
+  text-transform: uppercase; color: rgba(255,255,255,.28);
+}
+.bs-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 700; color: #fff; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.bs-val.g { color: #6EE7B7; }
+.bs-val.a { color: #FCD34D; }
+.bs-val.r { color: #FCA5A5; }
+.bs-context {
+  font-size: 11px; color: rgba(255,255,255,.22);
+  font-weight: 500; line-height: 1.4;
+}
+
+/* Data tables */
+.data-table { background:var(--white); border:1.5px solid var(--divider); border-radius:16px; overflow:hidden; box-shadow:var(--sh1); }
+.dt-head { display:grid; grid-template-columns:1.8fr 1fr 1fr; background:#F9F8F6; border-bottom:1.5px solid var(--divider); }
+.dt-head-cell { padding:11px 20px; font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--subtle); }
+.dt-row { display:grid; grid-template-columns:1.8fr 1fr 1fr; border-bottom:1px solid var(--divider); }
+.dt-row:last-child { border-bottom:none; }
+.dt-row.alt { background:#FAFAF8; }
+.dt-row.total-row { background:#F3F2EF; }
+.dt-cell { padding:15px 20px; display:flex; align-items:center; gap:8px; border-right:1px solid var(--divider); flex-wrap:wrap; }
+.dt-cell:last-child { border-right:none; }
+.dt-label { font-size:13px; font-weight:600; color:var(--ink2); }
+.dt-label.muted { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--subtle); }
+.dt-val { font-size:17px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+.dt-val.green { color:var(--teal); }
+.dt-val.red   { color:var(--red); }
+.dt-val.amber { color:var(--amber); }
+.dt-badge {
+  display:inline-flex; align-items:center;
+  font-size:11px; font-weight:700; letter-spacing:.03em;
+  padding:3px 9px; border-radius:100px;
+}
+.dt-badge.saving { background:var(--teal-bg); color:var(--teal); border:1px solid var(--teal-border); }
+.dt-badge.extra  { background:var(--red-bg);  color:var(--red);  border:1px solid var(--red-border); }
+
+/* Net table */
+.net-table { background:var(--white); border:1.5px solid var(--divider); border-radius:16px; overflow:hidden; box-shadow:var(--sh1); }
+.nt-row { display:flex; justify-content:space-between; align-items:center; padding:14px 22px; border-bottom:1px solid var(--divider); gap:12px; }
+.nt-row:last-child { border-bottom:none; }
+.nt-row.sect { background:#F9F8F6; padding:9px 22px; }
+.nt-row.totrow { background:var(--navy); padding:18px 22px; }
+.nt-label { font-size:13px; font-weight:600; color:var(--ink2); line-height:1.4; }
+.nt-label.sect { font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--subtle); }
+.nt-label.tot { font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.55); }
+.nt-amounts { display:flex; gap:28px; flex-shrink:0; }
+.nt-col { text-align:right; min-width:100px; }
+.nt-period { font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--subtle); margin-bottom:2px; }
+.nt-period.light { color:rgba(255,255,255,.3); }
+.nt-amount { font-size:16px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+.nt-amount.green  { color:var(--teal); }
+.nt-amount.red    { color:var(--red); }
+.nt-amount.amber  { color:var(--amber); }
+.nt-amount.bgreen { color:#6EE7B7; }
+.nt-amount.bred   { color:#FCA5A5; }
+
+/* Notice */
+.notice {
+  background:var(--amber-bg); border:1.5px solid var(--amber-border);
+  border-radius:12px; padding:14px 18px;
+  display:flex; align-items:flex-start; gap:10px; margin-top:16px;
+}
+.notice-text { font-size:13px; font-weight:600; color:var(--amber); line-height:1.5; }
+.notice-text b { font-weight:800; }
+
+/* Actions */
+.action-row { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-top:24px; }
+@media(max-width:480px){ .action-row{ grid-template-columns:1fr; } }
+.btn-email {
+  padding:15px 20px; background:var(--ink); color:#fff;
+  border:none; border-radius:10px;
+  font-family:'Mulish',sans-serif; font-weight:800; font-size:14px; letter-spacing:.02em;
+  cursor:pointer; transition:all .18s;
+  display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:var(--sh1);
+}
+.btn-email:hover { background:#2c2c40; transform:translateY(-1px); box-shadow:var(--sh2); }
+.btn-reset {
+  padding:15px 20px; background:var(--white); color:var(--subtle);
+  border:1.5px solid var(--divider); border-radius:10px;
+  font-family:'Mulish',sans-serif; font-weight:600; font-size:14px;
+  cursor:pointer; transition:all .18s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-reset:hover { border-color:var(--ink); color:var(--ink); }
+
+/* Modal */
+.overlay { display:none; position:fixed; inset:0; background:rgba(10,10,20,.52); backdrop-filter:blur(8px); z-index:200; align-items:center; justify-content:center; padding:20px; }
+.overlay.open { display:flex; }
+.modal { background:var(--white); border-radius:20px; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; box-shadow:0 24px 72px rgba(0,0,0,.18); animation:popIn .26s cubic-bezier(.22,.68,0,1.2); }
+@keyframes popIn { from{opacity:0;transform:scale(.94) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);} }
+.modal-head { padding:24px 28px 18px; border-bottom:1px solid var(--divider); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.modal-title { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:700; color:var(--ink); }
+.modal-sub   { font-size:12px; color:var(--subtle); margin-top:3px; font-weight:500; }
+.modal-x { background:var(--bg); border:none; width:32px; height:32px; border-radius:50%; cursor:pointer; color:var(--subtle); font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .14s; }
+.modal-x:hover { background:var(--divider); color:var(--ink); }
+.modal-body { padding:20px 28px 28px; }
+.email-area { background:var(--bg); border:1.5px solid var(--divider); border-radius:10px; padding:18px 20px; font-size:13.5px; line-height:1.85; color:var(--ink2); white-space:pre-wrap; font-family:'Mulish',sans-serif; font-weight:400; max-height:420px; overflow-y:auto; margin-bottom:14px; }
+.copy-btn { width:100%; padding:13px; background:var(--teal); color:#fff; border:none; border-radius:9px; font-family:'Mulish',sans-serif; font-weight:800; font-size:14px; cursor:pointer; transition:background .18s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.copy-btn:hover { background:#0a6357; }
+.copy-btn.done { background:#059669; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="zpay-eyebrow">Zpay</div>
+  <h1>ROI <em>Analysis</em></h1>
+  <p class="hd-desc">Enter your prospect's details below to calculate their savings and generate a personalised sales email.</p>
+
+  <!-- Prospect -->
+  <div class="prospect-bar">
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style="color:var(--subtle);flex-shrink:0"><path d="M3 17v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div style="flex:1">
+      <div class="pb-lbl">Prospect / Business Name</div>
+      <input type="text" id="prospectName" placeholder="e.g. Greenfield Pharmacy Group" />
+    </div>
+  </div>
+
+  <!-- Validation error -->
+  <div class="err-msg" id="errMsg">Please fill in all required fields before generating the analysis.</div>
+
+  <!-- Inputs -->
+  <div class="input-grid">
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-num">1</div>
+        <div class="card-title">Transaction Rates</div>
+      </div>
+      <div class="field">
+        <label>Current Transaction Rate</label>
+        <div class="fw" id="fw-currentRate">
+          <input type="number" id="currentRate" placeholder="2.90" step="0.01" min="0">
+          <span class="fa">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Zpay Transaction Rate</label>
+        <div class="fw" id="fw-zpayRate">
+          <input type="number" id="zpayRate" placeholder="1.90" step="0.01" min="0">
+          <span class="fa">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Number of Stores</label>
+        <div class="fw" id="fw-numStores">
+          <input type="number" id="numStores" placeholder="1" min="1" step="1">
+          <span class="fa">stores</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-num">2</div>
+        <div class="card-title">Volume, Cost &amp; Time</div>
+      </div>
+      <div class="field">
+        <label>Average Transaction Volume</label>
+        <div class="fw" id="fw-transVolume">
+          <span class="fa">$</span>
+          <input type="number" id="transVolume" placeholder="100,000" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Volume Period (per store)</label>
+        <div class="toggle">
+          <button class="tgl on" id="btnM">Monthly</button>
+          <button class="tgl"    id="btnY">Yearly</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Monthly Z-Software Cost</label>
+        <div class="fw" id="fw-zsoftCost">
+          <span class="fa">$</span>
+          <input type="number" id="zsoftCost" placeholder="e.g. 299" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Hours reconciling invoices (per week)</label>
+        <div class="fw">
+          <input type="number" id="reconHrs" placeholder="e.g. 4" min="0" step="0.5">
+          <span class="fa">hrs / wk</span>
+        </div>
+      </div>
+      <button class="cta-btn" id="calcBtn">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Generate ROI Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <div class="sec-rule"><div class="sec-rule-line"></div><div class="sec-rule-text">Executive Summary</div><div class="sec-rule-line"></div></div>
+    <div class="banner">
+      <div class="banner-hero">
+        <div class="banner-hero-left">
+          <div class="banner-eyebrow">Net Total Benefit</div>
+          <div class="banner-val" id="bnVal">—</div>
+          <div class="banner-sub" id="bnSub">—</div>
+        </div>
+        <div class="banner-hero-right">
+          <div class="banner-stores-val" id="bsStores">—</div>
+          <div class="banner-stores-lbl">Stores</div>
+        </div>
+      </div>
+      <div class="banner-stats">
+        <div class="bs">
+          <div class="bs-lbl">Transaction Fee Difference</div>
+          <div class="bs-val" id="bsFee">—</div>
+          <div class="bs-context">Per annum vs. current provider</div>
+        </div>
+        <div class="bs">
+          <div class="bs-lbl">Reconciliation Time Value</div>
+          <div class="bs-val a" id="bsTime">—</div>
+          <div class="bs-context">Estimated salary saving per annum</div>
+        </div>
+        <div class="bs">
+          <div class="bs-lbl">Z-Software Discount</div>
+          <div class="bs-val a" id="bsDisc">—</div>
+          <div class="bs-context">10% off current subscription (14-day offer)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-rule"><div class="sec-rule-line"></div><div class="sec-rule-text">Transaction Fee Comparison</div><div class="sec-rule-line"></div></div>
+    <div class="data-table">
+      <div class="dt-head">
+        <div class="dt-head-cell">Provider</div>
+        <div class="dt-head-cell">Monthly Cost</div>
+        <div class="dt-head-cell">Annual Cost</div>
+      </div>
+      <div class="dt-row">
+        <div class="dt-cell"><span class="dt-label">Current Provider</span></div>
+        <div class="dt-cell"><span class="dt-val" id="fCurM">—</span></div>
+        <div class="dt-cell"><span class="dt-val" id="fCurY">—</span></div>
+      </div>
+      <div class="dt-row" style="background:var(--teal-bg)">
+        <div class="dt-cell"><span class="dt-label">Zpay</span></div>
+        <div class="dt-cell"><span class="dt-val green" id="fZpM">—</span></div>
+        <div class="dt-cell"><span class="dt-val green" id="fZpY">—</span></div>
+      </div>
+      <div class="dt-row total-row">
+        <div class="dt-cell"><span class="dt-label muted">Difference</span></div>
+        <div class="dt-cell"><span class="dt-val" id="fDiffM">—</span>&nbsp;<span class="dt-badge" id="fBadgeM"></span></div>
+        <div class="dt-cell"><span class="dt-val" id="fDiffY">—</span>&nbsp;<span class="dt-badge" id="fBadgeY"></span></div>
+      </div>
+      <div class="dt-row" id="fPerStoreRow" style="display:none;background:#FAFAF8">
+        <div class="dt-cell"><span class="dt-label" style="color:var(--subtle);font-size:12px;">Per store breakdown</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="fPerStoreM">—</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="fPerStoreY">—</span></div>
+      </div>
+    </div>
+
+    <div class="sec-rule"><div class="sec-rule-line"></div><div class="sec-rule-text">Time &amp; Salary Saving</div><div class="sec-rule-line"></div></div>
+    <div class="data-table">
+      <div class="dt-head">
+        <div class="dt-head-cell">Metric</div>
+        <div class="dt-head-cell">Per Month</div>
+        <div class="dt-head-cell">Per Year</div>
+      </div>
+      <div class="dt-row">
+        <div class="dt-cell"><span class="dt-label">Hours saved on reconciliation <span id="tHrAllLabel" style="font-size:11px;color:var(--subtle);font-weight:500;"></span></span></div>
+        <div class="dt-cell"><span class="dt-val amber" id="tHrM">—</span></div>
+        <div class="dt-cell"><span class="dt-val amber" id="tHrY">—</span></div>
+      </div>
+      <div class="dt-row" id="tHrPerStoreRow" style="display:none;background:#FAFAF8">
+        <div class="dt-cell"><span class="dt-label" style="color:var(--subtle);font-size:12px;">Per store breakdown</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="tHrPerStoreM">—</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="tHrPerStoreY">—</span></div>
+      </div>
+      <div class="dt-row alt">
+        <div class="dt-cell"><span class="dt-label">Estimated salary value <span style="font-size:11px;color:var(--subtle);font-weight:500;">@ $40/hr</span> <span id="tSalAllLabel" style="font-size:11px;color:var(--subtle);font-weight:500;"></span></span></div>
+        <div class="dt-cell"><span class="dt-val amber" id="tSalM">—</span></div>
+        <div class="dt-cell"><span class="dt-val amber" id="tSalY">—</span></div>
+      </div>
+      <div class="dt-row" id="tSalPerStoreRow" style="display:none;background:#FAFAF8">
+        <div class="dt-cell"><span class="dt-label" style="color:var(--subtle);font-size:12px;">Per store breakdown</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="tSalPerStoreM">—</span></div>
+        <div class="dt-cell"><span class="dt-val" style="font-size:13px;color:var(--subtle)" id="tSalPerStoreY">—</span></div>
+      </div>
+    </div>
+
+    <div class="sec-rule"><div class="sec-rule-line"></div><div class="sec-rule-text">Total Net Savings</div><div class="sec-rule-line"></div></div>
+    <div class="net-table">
+      <div class="nt-row sect"><span class="nt-label sect">Transaction Fees</span></div>
+      <div class="nt-row">
+        <span class="nt-label" id="nnFeeLabel">Fee difference vs current provider</span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period">Monthly</div><div class="nt-amount" id="nnFeeM">—</div></div>
+          <div class="nt-col"><div class="nt-period">Annual</div><div class="nt-amount" id="nnFeeY">—</div></div>
+        </div>
+      </div>
+      <div class="nt-row sect"><span class="nt-label sect">Discount</span></div>
+      <div class="nt-row">
+        <span class="nt-label" id="nnDiscLabel">10% off Z-Software subscription &nbsp;<span style="font-size:11px;color:var(--subtle);">(14-day offer)</span></span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period">Monthly</div><div class="nt-amount amber" id="nnDiscM">—</div></div>
+          <div class="nt-col"><div class="nt-period">Annual</div><div class="nt-amount amber" id="nnDiscY">—</div></div>
+        </div>
+      </div>
+      <div class="nt-row" id="nnDiscPerStoreRow" style="display:none;background:#FAFAF8">
+        <span class="nt-label" style="font-size:12px;color:var(--subtle);">Per store breakdown</span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period">Monthly</div><div class="nt-amount" style="font-size:13px;color:var(--subtle)" id="nnDiscPerStoreM">—</div></div>
+          <div class="nt-col"><div class="nt-period">Annual</div><div class="nt-amount" style="font-size:13px;color:var(--subtle)" id="nnDiscPerStoreY">—</div></div>
+        </div>
+      </div>
+      <div class="nt-row sect"><span class="nt-label sect">Time Value</span></div>
+      <div class="nt-row">
+        <span class="nt-label" id="nnSalLabel">Estimated salary value saved</span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period">Monthly</div><div class="nt-amount amber" id="nnSalM">—</div></div>
+          <div class="nt-col"><div class="nt-period">Annual</div><div class="nt-amount amber" id="nnSalY">—</div></div>
+        </div>
+      </div>
+      <div class="nt-row" id="nnSalPerStoreRow" style="display:none;background:#FAFAF8">
+        <span class="nt-label" style="font-size:12px;color:var(--subtle);">Per store breakdown</span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period">Monthly</div><div class="nt-amount" style="font-size:13px;color:var(--subtle)" id="nnSalPerStoreM">—</div></div>
+          <div class="nt-col"><div class="nt-period">Annual</div><div class="nt-amount" style="font-size:13px;color:var(--subtle)" id="nnSalPerStoreY">—</div></div>
+        </div>
+      </div>
+      <div class="nt-row totrow">
+        <span class="nt-label tot">Net Total</span>
+        <div class="nt-amounts">
+          <div class="nt-col"><div class="nt-period light">Monthly</div><div class="nt-amount" id="nnNetM">—</div></div>
+          <div class="nt-col"><div class="nt-period light">Annual</div><div class="nt-amount" id="nnNetY">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notice">
+      <span style="font-size:15px;flex-shrink:0;margin-top:1px">⏱</span>
+      <div class="notice-text"><b>Limited-time offer:</b> The 10% off the Z-Software subscription is valid for <b>14 days from the date this proposal is sent.</b></div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-email" id="emailBtn">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M3 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 0 7 6 7-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Generate Sales Email
+      </button>
+      <button class="btn-reset" id="resetBtn">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Sales Email</div>
+        <div class="modal-sub">Copy and send directly to your prospect</div>
+      </div>
+      <button class="modal-x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="email-area" id="emailArea"></div>
+      <button class="copy-btn" id="copyBtn">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="7" y="7" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Copy to Clipboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var period = 'monthly';
+var D = null;
+
+function ge(id) { return document.getElementById(id); }
+function sv(id, v) { ge(id).textContent = v; }
+
+function setPeriod(p) {
+  period = p;
+  ge('btnM').className = 'tgl' + (p === 'monthly' ? ' on' : '');
+  ge('btnY').className = 'tgl' + (p === 'yearly'  ? ' on' : '');
+}
+function money(n) {
+  var abs = Math.abs(n);
+  return '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function moneyC(n) {
+  var a = Math.abs(n);
+  if (a >= 1000000) return '$' + (a/1000000).toFixed(2) + 'M';
+  if (a >= 1000)    return '$' + (a/1000).toFixed(1) + 'k';
+  return money(a);
+}
+
+function hrsLabel(h) {
+  var rounded = Math.round(h * 10) / 10;
+  return (rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)) + ' hrs';
+}
+
+function setAmount(id, val, cssClass) {
+  var el = ge(id);
+  el.textContent = val;
+  if (cssClass) el.className = 'nt-amount ' + cssClass;
+}
+
+function calculate() {
+  // Clear previous errors
+  ge('errMsg').className = 'err-msg';
+  ['fw-currentRate','fw-zpayRate','fw-transVolume'].forEach(function(id) {
+    var el = ge(id);
+    if (el) el.classList.remove('error');
+  });
+
+  var curRate = parseFloat(ge('currentRate').value);
+  var zpRate  = parseFloat(ge('zpayRate').value);
+  var vol     = parseFloat(ge('transVolume').value);
+  var stores  = parseInt(ge('numStores').value) || 1;
+  var zsoftCost = parseFloat(ge('zsoftCost').value) || 0;
+  var wkHrs   = parseFloat(ge('reconHrs').value) || 0;
+
+  var hasError = false;
+  if (isNaN(curRate)) { ge('fw-currentRate').classList.add('error'); hasError = true; }
+  if (isNaN(zpRate))  { ge('fw-zpayRate').classList.add('error');    hasError = true; }
+  if (isNaN(vol))     { ge('fw-transVolume').classList.add('error'); hasError = true; }
+
+  if (hasError) {
+    ge('errMsg').className = 'err-msg show';
+    ge('errMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // Volume per store → total across all stores
+  var volPerStoreM = period === 'yearly' ? vol / 12 : vol;
+  var volPerStoreY = period === 'yearly' ? vol       : vol * 12;
+  var volM = volPerStoreM * stores;
+  var volY = volPerStoreY * stores;
+
+  var curM = volM * (curRate / 100);
+  var curY = volY * (curRate / 100);
+  var zpM  = volM * (zpRate  / 100);
+  var zpY  = volY * (zpRate  / 100);
+
+  var diffM = curM - zpM;
+  var diffY = curY - zpY;
+
+  var discPerStoreM = zsoftCost * 0.10;
+  var discPerStoreY = discPerStoreM * 12;
+  var discM = discPerStoreM * stores;
+  var discY = discPerStoreY * stores;
+
+  var hrPerYear       = wkHrs * 52;
+  var hrPerMonth      = hrPerYear / 12;
+  var salPerStoreM    = hrPerMonth * 40;
+  var salPerStoreY    = hrPerYear  * 40;
+  var salPerMonth     = salPerStoreM * stores;
+  var salPerYear      = salPerStoreY * stores;
+
+  var netY = diffY + discY + salPerYear;
+  var netM = netY / 12;
+
+  D = {
+    name: ge('prospectName').value || 'Your Business',
+    curRate: curRate, zpRate: zpRate, stores: stores, zsoftCost: zsoftCost,
+    volM: volM, volY: volY, volPerStoreM: volPerStoreM, volPerStoreY: volPerStoreY,
+    curM: curM, curY: curY, zpM: zpM, zpY: zpY,
+    diffM: diffM, diffY: diffY,
+    discM: discM, discY: discY, discPerStoreM: discPerStoreM, discPerStoreY: discPerStoreY,
+    wkHrs: wkHrs, hrPerMonth: hrPerMonth, hrPerYear: hrPerYear,
+    salPerMonth: salPerMonth, salPerYear: salPerYear,
+    salPerStoreM: salPerStoreM, salPerStoreY: salPerStoreY,
+    netY: netY, netM: netM
+  };
+
+  // Banner
+  sv('bnVal', money(Math.abs(netY)));
+  sv('bnVal', money(Math.abs(netY)));
+  ge('bnVal').className = 'banner-val ' + (netY >= 0 ? 'pos' : 'neg');
+  var perMonth = money(Math.abs(netM)) + ' per month';
+  var storeStr = stores + ' store' + (stores > 1 ? 's' : '');
+  sv('bnSub', netY >= 0
+    ? 'Net annual saving across ' + storeStr + '  \u2014  ' + perMonth
+    : 'Net additional annual cost across ' + storeStr + '  \u2014  ' + perMonth);
+
+  ge('bsFee').className = 'bs-val ' + (diffY >= 0 ? 'g' : 'r');
+  sv('bsFee', money(Math.abs(diffY)));
+  // Update context label dynamically
+  var feeCtxEl = ge('bsFee').parentNode.querySelector('.bs-context');
+  if (feeCtxEl) feeCtxEl.textContent = (diffY >= 0 ? 'Saving per annum vs. current provider' : 'Additional cost per annum vs. current provider');
+  sv('bsTime', money(salPerYear));
+  sv('bsDisc', money(discY));
+  sv('bsStores', stores);
+
+  var multiStore = stores > 1;
+  var storeLabel = multiStore ? ' (all ' + stores + ' stores)' : '';
+  var perStoreLbl = multiStore ? '(per store: ' + hrsLabel(hrPerMonth) + '/mo)' : '';
+
+  // Fee table
+  sv('fCurM', money(curM)); sv('fCurY', money(curY));
+  sv('fZpM',  money(zpM));  sv('fZpY',  money(zpY));
+  sv('fDiffM', money(Math.abs(diffM)));
+  sv('fDiffY', money(Math.abs(diffY)));
+
+  var bM = ge('fBadgeM'), bY = ge('fBadgeY');
+  var vM = ge('fDiffM'),  vY = ge('fDiffY');
+
+  if (diffM >= 0) {
+    bM.textContent = 'Saving'; bM.className = 'dt-badge saving';
+    bY.textContent = 'Saving'; bY.className = 'dt-badge saving';
+    vM.className = 'dt-val green'; vY.className = 'dt-val green';
+  } else {
+    bM.textContent = 'Extra cost'; bM.className = 'dt-badge extra';
+    bY.textContent = 'Extra cost'; bY.className = 'dt-badge extra';
+    vM.className = 'dt-val red'; vY.className = 'dt-val red';
+  }
+
+  // Fee per-store breakdown
+  if (multiStore) {
+    var diffPerStoreM = diffM / stores;
+    var diffPerStoreY = diffY / stores;
+    sv('fPerStoreM', money(Math.abs(diffPerStoreM)) + ' / store');
+    sv('fPerStoreY', money(Math.abs(diffPerStoreY)) + ' / store');
+    ge('fPerStoreRow').style.display = '';
+  } else {
+    ge('fPerStoreRow').style.display = 'none';
+  }
+
+  // Time table
+  sv('tHrAllLabel',  multiStore ? '(all ' + stores + ' stores)' : '');
+  sv('tSalAllLabel', multiStore ? '(all ' + stores + ' stores)' : '');
+  sv('tHrM', hrsLabel(hrPerMonth * stores)); sv('tHrY', hrsLabel(hrPerYear * stores));
+  sv('tSalM', money(salPerMonth));   sv('tSalY', money(salPerYear));
+
+  if (multiStore) {
+    sv('tHrPerStoreM', hrsLabel(hrPerMonth) + ' / store');
+    sv('tHrPerStoreY', hrsLabel(hrPerYear)  + ' / store');
+    sv('tSalPerStoreM', money(salPerStoreM) + ' / store');
+    sv('tSalPerStoreY', money(salPerStoreY) + ' / store');
+    ge('tHrPerStoreRow').style.display = '';
+    ge('tSalPerStoreRow').style.display = '';
+  } else {
+    ge('tHrPerStoreRow').style.display = 'none';
+    ge('tSalPerStoreRow').style.display = 'none';
+  }
+
+  // Net table — fee row
+  if (diffM >= 0) {
+    sv('nnFeeLabel', 'Saving on fees vs current provider' + (multiStore ? ' (' + stores + ' stores)' : ''));
+    setAmount('nnFeeM', money(Math.abs(diffM)), 'green');
+    setAmount('nnFeeY', money(Math.abs(diffY)), 'green');
+  } else {
+    sv('nnFeeLabel', 'Extra cost on fees vs current provider' + (multiStore ? ' (' + stores + ' stores)' : ''));
+    setAmount('nnFeeM', money(Math.abs(diffM)), 'red');
+    setAmount('nnFeeY', money(Math.abs(diffY)), 'red');
+  }
+
+  // Net discount row
+  sv('nnDiscLabel', '10% off Z-Software subscription' + (multiStore ? ' (' + stores + ' stores)' : '') + ' \u00a0');
+  setAmount('nnDiscM', money(discM), 'amber');
+  setAmount('nnDiscY', money(discY), 'amber');
+
+  if (multiStore) {
+    sv('nnDiscPerStoreM', money(discPerStoreM) + ' / store');
+    sv('nnDiscPerStoreY', money(discPerStoreY) + ' / store');
+    ge('nnDiscPerStoreRow').style.display = '';
+  } else {
+    ge('nnDiscPerStoreRow').style.display = 'none';
+  }
+
+  // Net salary row
+  sv('nnSalLabel', 'Estimated salary value saved' + (multiStore ? ' (' + stores + ' stores)' : ''));
+  setAmount('nnSalM', money(salPerMonth), 'amber');
+  setAmount('nnSalY', money(salPerYear),  'amber');
+
+  if (multiStore) {
+    sv('nnSalPerStoreM', money(salPerStoreM) + ' / store');
+    sv('nnSalPerStoreY', money(salPerStoreY) + ' / store');
+    ge('nnSalPerStoreRow').style.display = '';
+  } else {
+    ge('nnSalPerStoreRow').style.display = 'none';
+  }
+
+
+  var netClass = netY >= 0 ? 'bgreen' : 'bred';
+  var netSuffix = netY >= 0 ? ' saving' : ' extra';
+  setAmount('nnNetM', money(Math.abs(netM)) + netSuffix, netClass);
+  setAmount('nnNetY', money(Math.abs(netY)) + netSuffix, netClass);
+
+  // Show results
+  var el = ge('results');
+  el.style.display = 'none';
+  el.className = 'results';
+  setTimeout(function() {
+    el.style.display = '';
+    el.className = 'results show';
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 20);
+}
+
+function openEmail() {
+  if (!D) return;
+  var d = D;
+  var feeSaving = d.diffM >= 0;
+  var netPos    = d.netY  >= 0;
+
+  var feeContext = feeSaving
+    ? 'On fees alone, that\'s a saving of ' + money(d.diffM) + '/month (' + money(d.diffY) + '/year).'
+    : 'On fees, that\'s an extra ' + money(Math.abs(d.diffM)) + '/month vs your current provider. But once you look at the full picture, most pharmacies find it more than covered.';
+
+  var timeBlock = d.wkHrs > 0
+    ? '\n\nReconciliation is a big one. Based on feedback from around 100 pharmacy owners, most are spending roughly ' + d.wkHrs + ' hours a week on it. With Zpay\'s automated reconciliation, that goes away - that\'s around ' + hrsLabel(d.hrPerMonth) + ' back per month, worth an estimated ' + money(d.salPerMonth) + '/month in salary value. That\'s time your team can actually put back into the business.'
+    : '\n\nZpay also automates reconciliation - something most pharmacies are spending hours on each week. That time goes back to your team immediately.';
+
+  var discLine = d.discY > 0
+    ? '  10% Z-Software disc:     ' + money(d.discY) + '/year (10% off ' + money(d.zsoftCost) + '/mo)'
+    : '  10% Z-Software disc:     n/a';
+
+  var urgencyLine = d.discY > 0
+    ? '\n\nOne thing worth flagging - the 10% off your Z-Software subscription (' + money(d.discM) + '/month saving) is only available for 14 days from when this was sent. Worth locking in quickly.'
+    : '';
+
+  var closingLine = netPos
+    ? "That's a genuine " + money(d.netY) + " annual benefit - and that's before factoring in reduced accountant reliance or the cash flow lift from faster payments."
+    : "Even with the fee difference, the time savings and faster payments typically more than cover the gap - especially as your volume grows.";
+
+  var email = [
+    'Subject: ' + d.name + ' - Zpay ROI Breakdown',
+    '',
+    'Hi [First Name],',
+    '',
+    "Great connecting recently. I ran some numbers based on your setup and wanted to share what things could look like with Zpay.",
+    '',
+    'Based on ' + money(d.volM / d.stores) + '/month per store (' + d.stores + ' store' + (d.stores > 1 ? 's' : '') + ', ' + money(d.volM) + '/month total) in card turnover:',
+    '',
+    '  Current fees (' + d.curRate + '%):  ' + money(d.curM) + '/month',
+    '  Zpay (' + d.zpRate + '%):          ' + money(d.zpM) + '/month',
+    '  Difference:             ' + money(Math.abs(d.diffM)) + '/month ' + (feeSaving ? '(saving)' : '(extra cost)'),
+    '',
+    feeContext,
+    timeBlock,
+    '',
+    "There's also the pay-by-link piece. Your clients can pay invoices online instantly - which means less chasing, faster cash in the door, and a cleaner experience all round. We're seeing pharmacies cut their debtor days significantly after switching.",
+    '',
+    'Quick summary:',
+    '',
+    '  Fee difference:           ' + money(Math.abs(d.diffY)) + '/year ' + (feeSaving ? '(saving)' : '(extra)'),
+    '  Time saving (est.):       ' + money(d.salPerYear) + '/year',
+    discLine,
+    '  ----------------------------',
+    '  Net benefit:              ' + money(Math.abs(d.netY)) + '/year ' + (netPos ? '(saving)' : '(extra)'),
+    '',
+    closingLine,
+    urgencyLine,
+    '',
+    'Worth a 20-minute call this week?',
+    '',
+    '[Your Name]',
+    '[Your Title] | Zpay',
+    '[Phone]'
+  ].join('\n');
+
+  ge('emailArea').textContent = email;
+  ge('copyBtn').textContent = 'Copy to Clipboard';
+  ge('copyBtn').className = 'copy-btn';
+  ge('overlay').className = 'overlay open';
+}
+
+function closeModal() { ge('overlay').className = 'overlay'; }
+
+function doCopy() {
+  var text = ge('emailArea').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      ge('copyBtn').textContent = '✓ Copied!';
+      ge('copyBtn').className = 'copy-btn done';
+      setTimeout(function() {
+        ge('copyBtn').textContent = 'Copy to Clipboard';
+        ge('copyBtn').className = 'copy-btn';
+      }, 2600);
+    }).catch(function() { fallbackCopy(text); });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  ge('copyBtn').textContent = '✓ Copied!';
+  ge('copyBtn').className = 'copy-btn done';
+  setTimeout(function() {
+    ge('copyBtn').textContent = 'Copy to Clipboard';
+    ge('copyBtn').className = 'copy-btn';
+  }, 2600);
+}
+
+function reset() {
+  ['currentRate','zpayRate','transVolume','numStores','zsoftCost','prospectName','reconHrs'].forEach(function(id) {
+    ge(id).value = '';
+  });
+  ['fw-currentRate','fw-zpayRate','fw-transVolume'].forEach(function(id) {
+    var el = ge(id); if (el) el.classList.remove('error');
+  });
+  ge('errMsg').className = 'err-msg';
+  setPeriod('monthly');
+  ge('results').className = 'results';
+  ge('results').style.display = '';
+  D = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Wire up all buttons via addEventListener (onclick blocked in some sandboxes)
+ge('btnM').addEventListener('click', function() { setPeriod('monthly'); });
+ge('btnY').addEventListener('click', function() { setPeriod('yearly'); });
+ge('calcBtn').addEventListener('click', calculate);
+ge('emailBtn').addEventListener('click', openEmail);
+ge('resetBtn').addEventListener('click', reset);
+ge('modalClose').addEventListener('click', closeModal);
+ge('copyBtn').addEventListener('click', doCopy);
+ge('copyBtn').textContent = 'Copy to Clipboard';
+
+// Close modal on overlay click
+ge('overlay').addEventListener('click', function(e) {
+  if (e.target === ge('overlay')) closeModal();
+});
+</script>
+</body>
+</html>
